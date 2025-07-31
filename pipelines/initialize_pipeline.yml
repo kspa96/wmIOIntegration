@@ -70,7 +70,7 @@ steps:
     addToPath: true
 
 - script: |
-    
+    python --version
     python3.10 -m pip3 install --upgrade pip
     pip3 install pynacl
     chmod +x ./pipelines/scripts/github/encryptGithubSecret.py
