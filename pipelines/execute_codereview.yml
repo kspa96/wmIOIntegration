@@ -1,0 +1,80 @@
+##############################################################################################################
+#                                                                                                            #
+# execute_codereviewme.yml : Execute ISSCR of Flowservices                                                   #
+#                                                                                                            #
+# ####### Inputs ########                                                                                    #
+# branch: (Mandatory) on which branch code review has to be done                                             #
+# repoName/projectName: (Mandatory) name of the project                                                      #
+##############################################################################################################
+
+trigger: none
+
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- group: webMethodsIO_group
+- group: azure_group
+- group: github_group
+- group: IBM_Registry
+- name: repoPath
+  value: $(gitOwner)/$(repoName)
+
+resources:
+  repositories:
+  - repository: wmio_isccrRepo
+    type: github
+    endpoint: github
+    name: $(gitOwner)/wmio-isccr
+    ref: main
+  - repository: projectRepo
+    type: github
+    endpoint: github
+    name: $(repoPath)
+    ref: $(codeReviewBranch)
+
+steps:
+- checkout: self
+  submodules: "true"
+  persistCredentials: "true"
+  clean: "true"
+  path: self
+- checkout: wmio_isccrRepo
+  submodules: "true"
+  persistCredentials: "true"
+  clean: "true"
+  path: wmio-isccr
+- checkout: projectRepo
+  submodules: "true"
+  persistCredentials: "true"
+  clean: "true"
+  path: $(repoName)
+
+
+
+- script: |
+    HOME_DIR=$(System.DefaultWorkingDirectory)/../
+    cd ${HOME_DIR}
+    chmod +x ./self/pipelines/scripts/*.sh
+    ./self/pipelines/scripts/executeCodeReview.sh ${HOME_DIR} true $(repoName) $(username) $(token) $(registry) $(gitOwner)/isccr wmio-isccr ${HOME_DIR}/self/configs/codereview debug
+    cp ${HOME_DIR}/results/*junit.xml $(System.DefaultWorkingDirectory)
+  displayName: 'Execute Code Review'
+  workingDirectory: '$(System.DefaultWorkingDirectory)'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: '$(System.DefaultWorkingDirectory)/../results'
+    artifactName: '$(repoName)_codeReview'
+  displayName: 'Publishing the code review'
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: '*.xml'
+    failTaskOnFailedTests: true
+    testRunTitle: '$(repoName) Code Review'
+  displayName: 'Parsing the code review JUnit'
+
+
+
