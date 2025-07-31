@@ -64,8 +64,18 @@ steps:
   workingDirectory: '$(System.DefaultWorkingDirectory)'
   displayName: 'Get Environment Tenant Details'
 # setup python environment
-- script: python --version
-  displayName: 'Verify Python Installed'
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.10'
+    addToPath: true
+
+- script: |
+    
+    python3.10 -m pip3 install --upgrade pip
+    pip3 install pynacl
+    chmod +x ./pipelines/scripts/github/encryptGithubSecret.py
+
+  displayName: 'Setup Python3 Environment'
   workingDirectory: '$(System.DefaultWorkingDirectory)'
   condition: succeeded()
 - script: |
